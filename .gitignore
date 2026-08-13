@@ -2,6 +2,8 @@
 .venv/
 venv/
 
+__pycache__/
+trip_agent.egg-info/
 # Secrets
 .env
 
@@ -43,3 +45,4 @@ build/
 
 # langsmith (if it creates local cache)
 .langsmith/
+

@@ -4,15 +4,7 @@ from langchain_core.tools import tool
 from tools.logger import get_logger
 logger = get_logger("weather")
 
-def get_geocode(city: str, country_code: str) -> dict:
-    geo = httpx.get(
-        "https://nominatim.openstreetmap.org/search",
-        params={"q": f"{city}, {country_code}", "format": "json", "limit": 1},
-        headers={"User-Agent": "trip-agent/0.1"}
-    ).json()
-    if not geo:
-        raise ValueError(f"Could not find location: {city}")
-    return {"lat": geo[0]["lat"], "lon": geo[0]["lon"]}
+from tools.geocoding import get_geocode
 
 @tool
 def get_weather(city: str, country_code: str) -> str:
