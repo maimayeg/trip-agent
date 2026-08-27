@@ -4,12 +4,19 @@ import uuid
 from dotenv import load_dotenv
 load_dotenv()
 
+
+from settings import settings   # fails fast here if anything's missing
+
 from langfuse import get_client
 from langfuse.langchain import CallbackHandler
 
 langfuse = get_client()
-langfuse_handler = CallbackHandler()
 
+langfuse_handler = CallbackHandler(
+    public_key=settings.langfuse_public_key,
+    secret_key=settings.langfuse_secret_key,
+    host=settings.langfuse_host,
+)
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from tools.weather import get_weather

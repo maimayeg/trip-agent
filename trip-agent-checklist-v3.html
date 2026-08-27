@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Agent — Project Tracker v3</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ee; --surface: #fff; --border: #e0ddd6; --text: #1a1916; --muted: #7a7770;
+    --accent: #2a5c8e;
+    --p1: #3d6b4f; --p1-bg: #e8f2ec;
+    --p2: #2a5c8e; --p2-bg: #e4edf7;
+    --p3: #8e6a2a; --p3-bg: #f7f0e4;
+    --p4: #5c4d8e; --p4-bg: #ece7f7;
+    --p5: #8e3a2a; --p5-bg: #f7e8e4;
+    --done-color: #aaa9a5;
+    --flag: #8e3a2a; --flag-bg: #f7e8e4;
+    --partial: #8e6a2a; --partial-bg: #f7f0e4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2.5rem 1rem; }
+  .container { max-width: 720px; margin: 0 auto; }
+  header { margin-bottom: 1.5rem; }
+  header h1 { font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem; font-weight: 500; letter-spacing: -.01em; margin-bottom: .3rem; }
+  header p { font-size: .875rem; color: var(--muted); }
+  .banner { font-size: .8rem; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: .75rem .95rem; border-radius: 0 8px 8px 0; line-height: 1.6; margin-bottom: 2rem; }
+  .banner strong { font-family: 'IBM Plex Mono', monospace; }
+  .progress-wrap { margin-bottom: 2rem; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: .8rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted); margin-bottom: .5rem; }
+  .progress-track { height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s ease; }
+  .phase { margin-bottom: 2rem; }
+  .phase-label { font-family: 'IBM Plex Mono', monospace; font-size: .72rem; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); padding-bottom: .6rem; border-bottom: 1px solid var(--border); margin-bottom: .75rem; display: flex; justify-content: space-between; }
+  .day { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: .55rem; overflow: hidden; transition: border-color .15s; }
+  .day:hover { border-color: #c8c5be; }
+  .day.flagged { border-color: #e3c9c0; }
+  .day-header { display: flex; align-items: center; gap: .75rem; padding: .85rem 1.1rem; cursor: pointer; user-select: none; }
+  .day-title { font-size: .9rem; font-weight: 500; flex: 1; }
+  .status-tag { font-family: 'IBM Plex Mono', monospace; font-size: .65rem; font-weight: 500; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+  .status-tag.gap { background: var(--flag-bg); color: var(--flag); }
+  .status-tag.partial { background: var(--partial-bg); color: var(--partial); }
+  .status-tag.ok { background: var(--p1-bg); color: var(--p1); }
+  .day-mini-progress { display: flex; gap: 3px; margin-left: auto; padding-right: .2rem; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s; }
+  .dot.done { background: var(--accent); }
+  .day-body { padding: 0 1.1rem 1rem; border-top: 1px solid var(--border); }
+  .checklist { margin-bottom: .9rem; }
+  .check-row { display: flex; align-items: flex-start; gap: .65rem; padding: .55rem 0; border-bottom: 1px solid var(--bg); }
+  .check-row:last-child { border-bottom: none; }
+  .check-row input[type=checkbox] { margin-top: 2px; flex-shrink: 0; width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent); }
+  .check-row label { font-size: .875rem; line-height: 1.55; color: var(--text); cursor: pointer; transition: color .2s, opacity .2s; }
+  .check-row.done label { text-decoration: line-through; color: var(--done-color); opacity: .7; }
+  .tip { font-size: .8rem; color: var(--muted); background: var(--bg); border-left: 2px solid var(--border); padding: .6rem .85rem; border-radius: 0 6px 6px 0; line-height: 1.6; }
+  .tip.warn { border-left-color: var(--flag); }
+  code { font-family: 'IBM Plex Mono', monospace; font-size: .8em; background: var(--bg); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border); }
+  .day-body .day-body-inner { display: none; }
+  .day.open .day-body-inner { display: block; }
+  .chevron { font-size: .7rem; color: var(--muted); transition: transform .2s; margin-left: .2rem; }
+  .day.open .chevron { transform: rotate(180deg); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>// trip-agent · project tracker v3</h1>
+    <p>Production roadmap: config → hardened tools → structured input → CI → deploy</p>
+  </header>
+
+  <div class="banner">
+    <strong>Where this picks up:</strong> the agent, tool wiring, observability, and evals from v2 are working (178-case eval run, avg scores ~3.6–3.8/5, two known bugs — past-date weather and German regional holidays — queued to fix). This tracker covers what turns it from "working script" into a deployable service.
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-meta"><span id="prog-label">0 / 0 tasks</span><span id="prog-pct">0%</span></div>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Phase 1 — Config &amp; entry point</div>
+    <div class="day p2 flagged" id="p1d1">
+      <div class="day-header" onclick="toggle('p1d1')">
+        <span class="day-title">Docs &amp; settings validation</span>
+        <div class="day-mini-progress" id="dots-p1d1"></div>
+        <span class="status-tag gap">Gap</span><span class="chevron">▼</span>
+      </div>
+      <div class="day-body"><div class="day-body-inner">
+        <div class="checklist">
+          <div class="check-row"><input type="checkbox" id="t1"><label for="t1">Write <code>README.md</code> — setup, env vars, how to run</label></div>
+          <div class="check-row"><input type="checkbox" id="t2"><label for="t2">Confirm <code>.env.example</code> exists and lists every required var</label></div>
+          <div class="check-row"><input type="checkbox" id="t3"><label for="t3">Add settings validation (e.g. pydantic <code>BaseSettings</code>) that fails fast with a clear error if a key is missing</label></div>
+        </div>
+        <div class="tip warn"><code>README.md</code> is currently empty and <code>app.py</code>/<code>server.py</code> are too — right now a missing API key just fails wherever it's first used, deep in a stack trace.</div>
+      </div></div>
+    </div>
+    <div class="day p2 flagged" id="p1d2">
+      <div class="day-header" onclick="toggle('p1d2')">
+        <span class="day-title">Single request-driven endpoint</span>
+        <div class="day-mini-progress" id="dots-p1d2"></div>
+        <span class="status-tag gap">Gap</span><span class="chevron">▼</span>
+      </div>
+      <div class="day-body"><div class="day-body-inner">
+        <div class="checklist">
+          <div class="check-row"><input type="checkbox" id="t4"><label for="t4">Build <code>app.py</code> into a FastAPI app (or a simple CLI, whichever ships first)</label></div>
+          <div class="check-row"><input type="checkbox" id="t5"><label for="t5">One <code>/plan-trip</code> (or equivalent) endpoint that takes a request and returns the agent's answer</label></div>
+        </div>
+        <div class="tip">This depends on Phase 3's structured input — the request body should be the <code>TripRequest</code> model, not a raw string.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Phase 2 — Harden HTTP tools</div>
+    <div class="day p1" id="p2d1">
+      <div class="day-header" onclick="toggle('p2d1')">
+        <span class="day-title">Timeouts, error handling, validation</span>
+        <div class="day-mini-progress" id="dots-p2d1"></div>
+        <span class="status-tag partial">Partial</span><span class="chevron">▼</span>
+      </div>
+      <div class="day-body"><div class="day-body-inner">
+        <div class="checklist">
+          <div class="check-row"><input type="checkbox" id="t6"><label for="t6">weather.py — timeout + <code>try/except httpx.RequestError</code> + response validation</label></div>
+          <div class="check-row"><input type="checkbox" id="t7"><label for="t7">geocoding.py — same treatment (currently missing)</label></div>
+          <div class="check-row"><input type="checkbox" id="t8"><label for="t8">holidays.py — same treatment (currently missing)</label></div>
+          <div class="check-row"><input type="checkbox" id="t9"><label for="t9">Fix: past-date weather requests return an honest "can't do that" message instead of an unclear error</label></div>
+          <div class="check-row"><input type="checkbox" id="t10"><label for="t10">Fix: German (and other subdivision-based) holidays distinguish nationwide vs. regional</label></div>
+        </div>
+        <div class="tip">The pattern from weather.py is proven — copy it into the other two tools rather than reinventing it.</div>
+      </div></div>
+    </div>
+    <div class="day p2 flagged" id="p2d2">
+      <div class="day-header" onclick="toggle('p2d2')">
+        <span class="day-title">Connection reuse &amp; mocked tests</span>
+        <div class="day-mini-progress" id="dots-p2d2"></div>
+        <span class="status-tag gap">Gap</span><span class="chevron">▼</span>
+      </div>
+      <div class="day-body"><div class="day-body-inner">
+        <div class="checklist">
+          <div class="check-row"><input type="checkbox" id="t11"><label for="t11">Replace per-call <code>httpx.get()</code> with a shared <code>httpx.Client()</code> reused across requests</label></div>
+          <div class="check-row"><input type="checkbox" id="t12"><label for="t12">Rewrite unit tests to mock HTTP (e.g. <code>respx</code>) instead of hitting live APIs</label></div>
+        </div>
+        <div class="tip warn">Live-API tests will make CI (Phase 4) flaky and slow — mock before wiring up CI, not after.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Phase 3 — Structured trip input</div>
+    <div class="day p4 flagged" id="p3d1">
+      <div class="day-header" onclick="toggle('p3d1')">
+        <span class="day-title">Pydantic trip model + itinerary-filtered prompt</span>
+        <div class="day-mini-progress" id="dots-p3d1"></div>
+        <span class="status-tag gap">Gap</span><span class="chevron">▼</span>
+      </div>
+      <div class="day-body"><div class="day-body-inner">
+        <div class="checklist">
+          <div class="check-row"><input type="checkbox" id="t13"><label for="t13">Define <code>TripRequest</code> (destination, start_date, end_date, interests) with pydantic</label></div>
+          <div class="check-row"><input type="checkbox" id="t14"><label for="t14">Swap free-text question input for the structured model in the entry point</label></div>
+          <div class="check-row"><input type="checkbox" id="t15"><label for="t15">Filter tool output (e.g. forecast days) down to the actual trip date range before it hits the prompt</label></div>
+        </div>
+        <div class="tip">pydantic is already a transitive dependency via LangChain — no new install needed.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Phase 4 — Dependency &amp; CI hygiene</div>
+    <div class="day p4 flagged" id="p4d1">
+      <div class="day-header" onclick="toggle('p4d1')">
+        <span class="day-title">Lockfile, pruning, CI pipeline</span>
+        <div class="day-mini-progress" id="dots-p4d1"></div>
+        <span class="status-tag gap">Gap</span><span class="chevron">▼</span>
+      </div>
+      <div class="day-body"><div class="day-body-inner">
+        <div class="checklist">
+          <div class="check-row"><input type="checkbox" id="t16"><label for="t16">Generate and commit a lockfile (<code>uv.lock</code> / <code>poetry.lock</code>)</label></div>
+          <div class="check-row"><input type="checkbox" id="t17"><label for="t17">Remove unused deps — check whether <code>streamlit</code> and <code>langchain-anthropic</code> are actually used</label></div>
+          <div class="check-row"><input type="checkbox" id="t18"><label for="t18">Add lint (ruff) + type check (mypy) + test job to CI</label></div>
+        </div>
+        <div class="tip warn"><code>streamlit</code> doesn't appear anywhere in the code reviewed so far, and both <code>langchain-anthropic</code> and <code>langchain-openai</code> are listed even though only OpenAI is used — worth confirming which one you're actually keeping.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-label">Phase 5 — Deployment</div>
+    <div class="day p5 flagged" id="p5d1">
+      <div class="day-header" onclick="toggle('p5d1')">
+        <span class="day-title">Container, health check, Cloud Run, secrets</span>
+        <div class="day-mini-progress" id="dots-p5d1"></div>
+        <span class="status-tag gap">Gap</span><span class="chevron">▼</span>
+      </div>
+      <div class="day-body"><div class="day-body-inner">
+        <div class="checklist">
+          <div class="check-row"><input type="checkbox" id="t19"><label for="t19">Write a <code>Dockerfile</code> and build it locally</label></div>
+          <div class="check-row"><input type="checkbox" id="t20"><label for="t20">Add a <code>/health</code> endpoint (depends on Phase 1's app existing)</label></div>
+          <div class="check-row"><input type="checkbox" id="t21"><label for="t21">Configure Cloud Run service (or chosen platform)</label></div>
+          <div class="check-row"><input type="checkbox" id="t22"><label for="t22">Move secrets out of local <code>.env</code> into a secrets manager</label></div>
+          <div class="check-row"><input type="checkbox" id="t23"><label for="t23">Add retries/backoff or rate limiting on outbound tool calls</label></div>
+        </div>
+        <div class="tip">Structured logging and Langfuse session/tool tagging are already in place — this phase is really about everything around the app, not the app's internals.</div>
+      </div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DAYS = {
+  p1d1: ['t1','t2','t3'], p1d2: ['t4','t5'],
+  p2d1: ['t6','t7','t8','t9','t10'], p2d2: ['t11','t12'],
+  p3d1: ['t13','t14','t15'],
+  p4d1: ['t16','t17','t18'],
+  p5d1: ['t19','t20','t21','t22','t23']
+};
+const ALL_TASKS = Object.values(DAYS).flat();
+const STORAGE_KEY = 'trip_agent_v3';
+const DEFAULT_DONE = [];
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === null) {
+      const seeded = {};
+      DEFAULT_DONE.forEach(id => seeded[id] = true);
+      save(seeded);
+      return seeded;
+    }
+    return JSON.parse(raw || '{}');
+  } catch { return {}; }
+}
+function save(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function toggle(dayId) { document.getElementById(dayId).classList.toggle('open'); }
+
+function updateProgress() {
+  const state = load();
+  const done = ALL_TASKS.filter(id => state[id]).length;
+  const pct = Math.round(done / ALL_TASKS.length * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = done + ' / ' + ALL_TASKS.length + ' tasks';
+  document.getElementById('prog-pct').textContent = pct + '%';
+  for (const [dayId, tasks] of Object.entries(DAYS)) {
+    const dotContainer = document.getElementById('dots-' + dayId);
+    dotContainer.innerHTML = tasks.map(t => `<div class="dot${state[t] ? ' done' : ''}"></div>`).join('');
+  }
+}
+
+function init() {
+  const state = load();
+  ALL_TASKS.forEach(id => {
+    const cb = document.getElementById(id);
+    if (!cb) return;
+    cb.checked = !!state[id];
+    const row = cb.closest('.check-row');
+    if (cb.checked) row.classList.add('done');
+    cb.addEventListener('change', () => {
+      const s = load();
+      s[id] = cb.checked;
+      save(s);
+      cb.closest('.check-row').classList.toggle('done', cb.checked);
+      updateProgress();
+    });
+  });
+  updateProgress();
+}
+init();
+</script>
+</body>
+</html>

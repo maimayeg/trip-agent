@@ -5,6 +5,7 @@ description = "LangChain trip planning agent"
 requires-python = ">=3.11"
 
 dependencies = [
+    "pydantic-settings>=2.0",
     "langchain>=0.3",
     "langchain-core>=0.3",
     "langchain-anthropic>=0.3",
