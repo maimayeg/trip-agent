@@ -1,5 +1,6 @@
 from tools.weather import get_weather
 
+
 def test_tokyo_returns_forecast():
     result = get_weather.invoke({"city": "Tokyo", "country_code": "JP"})
     assert "°C" in result

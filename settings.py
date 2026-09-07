@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
     langfuse_public_key: str = Field(..., alias="LANGFUSE_PUBLIC_KEY")
     langfuse_secret_key: str = Field(..., alias="LANGFUSE_SECRET_KEY")
-    langfuse_host: str = Field(..., alias="LANGFUSE_BASE_URL")  # Note: Changed alias to LANGFUSE_BASE_URL for clarity
+    langfuse_host: str = Field(..., alias="LANGFUSE_BASE_URL")  # matches .env variable name
 
     @field_validator(
         "openai_api_key", "langfuse_public_key", "langfuse_secret_key", "langfuse_host"
@@ -47,7 +47,7 @@ def load_settings() -> Settings:
             "and every required variable is filled in.\n\n"
             f"Details:\n{e}\n\n"
         )
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 settings = load_settings()

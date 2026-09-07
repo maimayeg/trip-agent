@@ -1,5 +1,6 @@
 from tools.holidays import get_public_holidays
 
+
 def test_japan_holidays_2026():
     result = get_public_holidays.invoke({"country_code": "JP", "year": 2026})
     assert "2026" in result

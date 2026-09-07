@@ -1,18 +1,17 @@
 # evals/run_eval.py
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from dotenv import load_dotenv
-load_dotenv()
-
 from langchain_openai import ChatOpenAI
 from langfuse.langchain import CallbackHandler
 
-from agent import agent, get_tools_called   # reuse what you already built
-from prompts.system import SYSTEM_PROMPT
+from agent import agent, get_tools_called  # reuse what you already built
 from evals.dataset import EVAL_CASES
+from prompts.system import SYSTEM_PROMPT
 
+load_dotenv()
 judge_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 langfuse_handler = CallbackHandler()
 
@@ -79,7 +78,7 @@ def main():
                 "reasoning": f"RUN FAILED: {e}",
             })
     os.makedirs("evals/results", exist_ok=True)
-    out_path = f"evals/results/{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+    out_path = f"evals/results/{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
 

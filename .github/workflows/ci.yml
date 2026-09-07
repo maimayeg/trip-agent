@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras
+      - name: mypy
+        run: uv run mypy .
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras
+      - name: pytest
+        run: uv run pytest
+        # No API keys are configured in CI on purpose — tests must not
+        # depend on live network calls or real credentials. If tests still
+        # hit real APIs (weather/geocoding/holidays) at this point, that's
+        # the mocked-tests gap from the checklist (Phase 2) still open —
+        # this job will simply fail until that's done, which is the
+        # correct signal rather than something to silence here.

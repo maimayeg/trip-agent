@@ -15,13 +15,12 @@ import argparse
 import sys
 import uuid
 
-from settings import settings  # fails fast on missing config, before anything else runs
-
 from langfuse import get_client
 from langfuse.langchain import CallbackHandler
 
 from agent import agent, get_tools_called
 from prompts.system import SYSTEM_PROMPT
+from settings import settings  # fails fast on missing config, before anything else runs
 
 langfuse = get_client()
 langfuse_handler = CallbackHandler(

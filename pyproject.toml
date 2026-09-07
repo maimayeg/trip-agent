@@ -5,31 +5,51 @@ description = "LangChain trip planning agent"
 requires-python = ">=3.11"
 
 dependencies = [
-    "pydantic-settings>=2.0",
     "langchain>=0.3",
     "langchain-core>=0.3",
-    "langchain-anthropic>=0.3",
+    "langchain-openai>=0.2",
     "langgraph>=0.2",
     "httpx>=0.27",
     "python-dotenv>=1.0",
-    "streamlit>=1.35",
-    "langchain-openai>=0.2",
-    "langfuse>=2.0"
-    ]
+    "langfuse>=3.0",
+    "pydantic-settings>=2.0",
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
+]
 
 [project.optional-dependencies]
 dev = [
-    "langsmith>=0.1",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
-    "fastapi>=0.111",
-    "uvicorn>=0.30",
-    "langserve>=0.2",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "respx>=0.21",
 ]
 
 [tool.setuptools.packages.find]
-include = ["tools*", "prompts*"]
+include = ["tools*", "prompts*", "api*"]
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]  # pyflakes, pycodestyle, import sort, pyupgrade, bugbear
+
+[tool.ruff.lint.per-file-ignores]
+# Test-case data, not logic — long single-line dict entries here are fine
+# and manually wrapping ~180 of them wouldn't improve readability.
+"evals/dataset.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+# Start lenient — tighten (disallow_untyped_defs, etc.) once existing code
+# has type hints added; a fresh strict pass on an untyped codebase produces
+# too much noise to be useful on day one.
