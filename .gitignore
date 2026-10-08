@@ -1,0 +1,45 @@
+# Virtual environment
+.venv/
+venv/
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# streamlit
+.streamlit/secrets.toml
+
+# Testing
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# pytest
+.pytest_cache/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# langsmith (if it creates local cache)
+.langsmith/
