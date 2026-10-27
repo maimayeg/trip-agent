@@ -11,7 +11,7 @@ def geocode_city(city: str, country_code: str | None = None) -> dict:
     Raises ValueError if not found, httpx.RequestError if the network call fails."""
     logger.info(f"geocode_city called | city={city} country={country_code}")
 
-    params = {"q": city, "format": "json", "limit": 1}
+    params: dict[str, str | int]  = {"q": city, "format": "json", "limit": 1}
     if country_code:
         params["countrycodes"] = country_code.lower()
 

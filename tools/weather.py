@@ -65,6 +65,8 @@ def get_weather(
     forecast_days = 7
     if trip_start or trip_end:
         effective_end = trip_end or trip_start
+        assert effective_end is not None
+
         days_ahead = (effective_end - today).days + 1
         forecast_days = max(1, min(days_ahead, MAX_FORECAST_DAYS))
 
@@ -95,7 +97,7 @@ def get_weather(
     # Filter down to just the trip's date range before this ever becomes
     # part of the agent's context — the LLM never sees the days outside
     # what was actually asked for.
-    indices = range(len(daily["time"]))
+    indices = list(range(len(daily["time"])))
     if trip_start or trip_end:
         indices = [
             i
