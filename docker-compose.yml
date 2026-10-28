@@ -1,0 +1,13 @@
+# ---------------------------------------------------------------------------
+# docker-compose.yml: how to RUN the image locally.
+# Start it with:   docker compose up --build
+# Stop it with:    Ctrl+C   (or `docker compose down`)
+# ---------------------------------------------------------------------------
+services:
+  api:
+    build: .               # build the image from the Dockerfile in this folder
+    ports:
+      - "8000:8000"        # your Mac's port 8000 -> the container's port 8000
+    env_file:
+      - .env               # pass your keys in at run time (never baked into the image)
+    restart: unless-stopped
