@@ -21,10 +21,13 @@ import os
 import sys
 import uuid
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header     
 from langfuse import Langfuse, get_client, propagate_attributes
 from langfuse.langchain import CallbackHandler
 from pydantic import BaseModel
+import hmac
+import time
+from collections import defaultdict, deque
 
 # This file lives in api/, but agent.py, settings.py, prompts/, and tools/
 # live in the project root. Add the root to sys.path so the imports below
@@ -49,6 +52,23 @@ Langfuse(
 langfuse = get_client()
 langfuse_handler = CallbackHandler()
 
+SERVICE_API_KEY = os.environ["SERVICE_API_KEY"]
+RATE_LIMIT = int(os.environ.get("RATE_LIMIT", "10"))    # requests per window, per key
+RATE_WINDOW = int(os.environ.get("RATE_WINDOW", "60"))  # seconds
+MAX_AGENT_STEPS = 10
+_hits: dict[str, deque] = defaultdict(deque)
+
+
+def check_access(api_key: str | None) -> None:
+    if not api_key or not hmac.compare_digest(api_key, SERVICE_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    now = time.time()
+    q = _hits[api_key]
+    while q and now - q[0] > RATE_WINDOW:
+        q.popleft()
+    if len(q) >= RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded, try again later")
+    q.append(now)
 app = FastAPI(
     title="Trip Agent API",
     description="Ask travel questions about Egypt — weather, holidays, and locations.",
@@ -69,7 +89,8 @@ def health():
 
 
 @app.post("/plan-trip", response_model=TripAnswerResponse)
-def plan_trip(trip: TripRequest):
+def plan_trip(trip: TripRequest, x_api_key: str | None = Header(default=None)):
+    check_access(x_api_key)
     session_id = str(uuid.uuid4())
     question = trip.to_question()
 
@@ -83,7 +104,7 @@ def plan_trip(trip: TripRequest):
                             {"role": "user", "content": question},
                         ]
                     },
-                    config={"callbacks": [langfuse_handler]},
+                    config={"callbacks": [langfuse_handler], "recursion_limit": MAX_AGENT_STEPS},
                 )
             except Exception as e:
                 span.update(level="ERROR", status_message=str(e))
@@ -96,5 +117,5 @@ def plan_trip(trip: TripRequest):
             answer = response["messages"][-1].content
             tools_called = get_tools_called(response["messages"])
             span.set_trace_io(input=trip.model_dump(mode="json"), output={"answer": answer})
-
+    langfuse.flush()
     return TripAnswerResponse(answer=answer, tools_called=tools_called, session_id=session_id)
