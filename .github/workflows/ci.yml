@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   lint:
@@ -41,3 +41,41 @@ jobs:
         # the mocked-tests gap from the checklist (Phase 2) still open —
         # this job will simply fail until that's done, which is the
         # correct signal rather than something to silence here.
+
+  # ---------------------------------------------------------------------------
+  # Deploy: build the Docker image and ship it to Cloud Run.
+  # Runs only on a push/merge to master, and only after all three checks pass.
+  # ---------------------------------------------------------------------------
+  deploy:
+    needs: [lint, typecheck, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.GCP_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # lets GitHub prove to Google who it is (no password stored)
+    env:
+      REGION: europe-west3
+      IMAGE: europe-west3-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/cloud-run-source-deploy/trip-agent:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build the image
+        run: docker build -t "$IMAGE" .
+
+      - name: Push the image to Artifact Registry
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run
+        # Secrets, service account and limits are kept from the current
+        # Cloud Run setup; only the image changes.
+        run: gcloud run deploy trip-agent --image "$IMAGE" --region "$REGION" --quiet

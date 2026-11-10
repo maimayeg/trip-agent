@@ -20,14 +20,9 @@ from langfuse.langchain import CallbackHandler
 
 from agent import agent, get_tools_called
 from prompts.system import SYSTEM_PROMPT
-from settings import settings  # fails fast on missing config, before anything else runs
 
 langfuse = get_client()
-langfuse_handler = CallbackHandler(
-    public_key=settings.langfuse_public_key,
-    secret_key=settings.langfuse_secret_key,
-    host=settings.langfuse_host,
-)
+langfuse_handler = CallbackHandler()
 
 
 def ask(messages: list, span_name: str = "trip-agent-cli-run") -> dict:
@@ -37,7 +32,7 @@ def ask(messages: list, span_name: str = "trip-agent-cli-run") -> dict:
     the tools called *this turn* only, and the full updated message list
     to pass into the next turn.
     """
-    with langfuse.start_as_current_span(name=span_name) as span:
+    with langfuse.start_as_current_observation(name=span_name, as_type="span") as span:
         span.update_trace(input={"question": messages[-1]["content"]})
 
         try:
@@ -46,17 +41,18 @@ def ask(messages: list, span_name: str = "trip-agent-cli-run") -> dict:
                 config={"callbacks": [langfuse_handler]},
             )
         except Exception as e:
-            span.update_trace(tags=["error"], output={"error": str(e)})
+            span.update(level="ERROR", status_message=str(e))
             raise
 
         updated_messages = response["messages"]
         # only the messages added this turn, so tool tagging reflects
         # this turn's activity rather than the whole conversation so far
-        new_messages = updated_messages[len(messages):]
+        new_messages = updated_messages[len(messages) :]
         tools_called = get_tools_called(new_messages)
 
         answer = updated_messages[-1].content
-        span.update_trace(tags=tools_called, output={"answer": answer})
+        span.update(metadata={"tools_called": tools_called})
+        span.set_trace_io(input={"question": messages[-1]["content"]}, output={"answer": answer})
 
     return {"answer": answer, "tools_called": tools_called, "messages": updated_messages}
 
@@ -114,11 +110,10 @@ def run_once(question: str) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Ask the trip agent travel questions."
-    )
+    parser = argparse.ArgumentParser(description="Ask the trip agent travel questions.")
     parser.add_argument(
-        "-q", "--question",
+        "-q",
+        "--question",
         help="Answer a single question and exit, instead of the interactive loop.",
     )
     args = parser.parse_args()

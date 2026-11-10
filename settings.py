@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore",       # ignore unrelated env vars instead of erroring on them
+        extra="ignore",  # ignore unrelated env vars instead of erroring on them
     )
 
     openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
 def load_settings() -> Settings:
     try:
-        return Settings()
+        return Settings()  # type: ignore[call-arg]
     except Exception as e:
         sys.stderr.write(
             "\n[settings] Missing or invalid configuration.\n"

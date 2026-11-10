@@ -41,7 +41,5 @@ class TripRequest(BaseModel):
         parts = [f"I'm planning a trip to {self.destination} from {date_range}."]
         if self.interests:
             parts.append(f"I'm especially interested in: {', '.join(self.interests)}.")
-        parts.append(
-            "What should I know about weather and public holidays for these exact dates?"
-        )
+        parts.append("What should I know about weather and public holidays for these exact dates?")
         return " ".join(parts)

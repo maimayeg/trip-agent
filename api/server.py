@@ -17,17 +17,17 @@ once TripRequest (destination/dates/interests) replaces free-text
 questions, rather than bolting it on twice.
 """
 
+import hmac
 import os
 import sys
+import time
 import uuid
+from collections import defaultdict, deque
 
-from fastapi import FastAPI, HTTPException, Header     
+from fastapi import FastAPI, Header, HTTPException
 from langfuse import Langfuse, get_client, propagate_attributes
 from langfuse.langchain import CallbackHandler
 from pydantic import BaseModel
-import hmac
-import time
-from collections import defaultdict, deque
 
 # This file lives in api/, but agent.py, settings.py, prompts/, and tools/
 # live in the project root. Add the root to sys.path so the imports below
@@ -53,7 +53,7 @@ langfuse = get_client()
 langfuse_handler = CallbackHandler()
 
 SERVICE_API_KEY = os.environ["SERVICE_API_KEY"]
-RATE_LIMIT = int(os.environ.get("RATE_LIMIT", "10"))    # requests per window, per key
+RATE_LIMIT = int(os.environ.get("RATE_LIMIT", "10"))  # requests per window, per key
 RATE_WINDOW = int(os.environ.get("RATE_WINDOW", "60"))  # seconds
 MAX_AGENT_STEPS = 10
 _hits: dict[str, deque] = defaultdict(deque)
@@ -69,6 +69,8 @@ def check_access(api_key: str | None) -> None:
     if len(q) >= RATE_LIMIT:
         raise HTTPException(status_code=429, detail="Rate limit exceeded, try again later")
     q.append(now)
+
+
 app = FastAPI(
     title="Trip Agent API",
     description="Ask travel questions about Egypt — weather, holidays, and locations.",
@@ -110,9 +112,7 @@ def plan_trip(trip: TripRequest, x_api_key: str | None = Header(default=None)):
                 span.update(level="ERROR", status_message=str(e))
                 # Don't leak internals to the client — real error is in the
                 # Langfuse trace + server logs.
-                raise HTTPException(
-                    status_code=500, detail="Failed to process the request."
-                ) from e
+                raise HTTPException(status_code=500, detail="Failed to process the request.") from e
 
             answer = response["messages"][-1].content
             tools_called = get_tools_called(response["messages"])
