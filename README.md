@@ -4,6 +4,10 @@ A travel-planning agent that answers with **live data, not model memory**. Give 
 
 Built with LangGraph and OpenAI, served as a FastAPI service on **Google Cloud Run**, traced in **Langfuse**, and evaluated with an **LLM-as-judge** pipeline. Currently scoped to travel within Egypt.
 
+## URL
+
+https://trip-agent-984276875999.europe-west3.run.app
+
 ## Highlights
 
 - **Tool-using agent:** a LangGraph ReAct agent chooses between geocoding, weather, and holiday tools, and chains them when a question needs more than one.
@@ -12,22 +16,28 @@ Built with LangGraph and OpenAI, served as a FastAPI service on **Google Cloud R
 - **Observable:** every run is traced in Langfuse, with the tool-call waterfall, latency, session IDs, and error tagging.
 - **Tested and evaluated:** offline unit tests with mocked HTTP, CI on every push (ruff, mypy, pytest), and an LLM-as-judge eval set scoring accuracy, completeness, and helpfulness.
 
-## How it works
+```mermaid
+flowchart LR
+    client([Client]) -->|"POST /plan-trip + X-API-Key"| api
 
-```
-POST /plan-trip  ──►  TripRequest  ──►  ReAct agent (gpt-4o-mini)
-                                           │
-                     ┌─────────────────────┼─────────────────────┐
-                     ▼                     ▼                     ▼
-              get_geocode          get_weather          get_public_holidays
-              (Nominatim)          (Open-Meteo)          (Nager.Date)
-                                           │
-                                           ▼
-                         answer + tools_called + session_id
-                                 (traced in Langfuse)
-```
+    subgraph cloudrun["Google Cloud Run"]
+        api["FastAPI<br/>API key · rate limit · TripRequest"] --> agent["LangGraph ReAct agent"]
+        agent --> tools["Tools<br/>geocode · weather · holidays"]
+    end
 
-Weather, holidays, and coordinates are facts that change, or that an LLM can confidently get wrong, so each one comes from a live, keyless public API.
+    agent <-->|reasoning| openai[("OpenAI<br/>gpt-4o-mini")]
+    tools --> nominatim[("Nominatim")]
+    tools --> meteo[("Open-Meteo")]
+    tools --> nager[("Nager.Date")]
+    agent -.->|traces| langfuse[("Langfuse")]
+    secrets[("Secret Manager")] -.->|keys at start-up| api
+
+    subgraph gha["GitHub Actions · on push to master"]
+        checks["ruff · mypy · pytest"] --> build["docker build"]
+    end
+    build -->|push image| registry[("Artifact Registry")]
+    registry -->|deploy| cloudrun
+```
 
 ## Project structure
 

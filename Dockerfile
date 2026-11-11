@@ -36,4 +36,4 @@ EXPOSE 8000
 
 # 8. What runs when the container starts: your FastAPI server.
 #    --host 0.0.0.0 makes it reachable from outside the box (your Mac).
-CMD ["uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn api.server:app --host 0.0.0.0 --port ${PORT:-8000}"]
