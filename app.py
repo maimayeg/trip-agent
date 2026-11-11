@@ -33,8 +33,6 @@ def ask(messages: list, span_name: str = "trip-agent-cli-run") -> dict:
     to pass into the next turn.
     """
     with langfuse.start_as_current_observation(name=span_name, as_type="span") as span:
-        
-
         try:
             response = agent.invoke(
                 {"messages": messages},
